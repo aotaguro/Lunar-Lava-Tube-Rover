@@ -41,14 +41,25 @@ class LavaTubeSim(ShowBase):
         self.taskMgr.add(self.update, "Update")
 
 
-#moving the rectangle rover hopefully 
+#Camera follows moving rectnagle finally
     def update(self, task):
 
         dt = globalClock.getDt()
 
+        # Move rover forward
         self.rover.setY(self.rover, self.speed * dt)
-        return Task.cont
 
+        # Camera follows behind
+        self.camera.setPos(
+            self.rover.getX(),
+            self.rover.getY() - 15,
+            self.rover.getZ() + 6
+        )
+
+        self.camera.lookAt(self.rover)
+
+        return Task.cont
+    
 app = LavaTubeSim()
 app.run()
 
