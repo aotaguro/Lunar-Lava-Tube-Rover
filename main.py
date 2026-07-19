@@ -1,4 +1,5 @@
-from direct.showbase.ShowBase import ShowBase 
+from direct.showbase.ShowBase import ShowBase
+from direct.task import Task
 from panda3d.core import AmbientLight, DirectionalLight, Vec4
 
 class LavaTubeSim(ShowBase):
@@ -30,6 +31,23 @@ class LavaTubeSim(ShowBase):
         sunNP.setHpr(-45, -45, 0)
         self.render.setLight(sunNP)
 
+        self.rover = self.loader.loadModel("models/box")
+        self.rover.reparentTo(self.render)
+        self.rover.setScale(1.5, 2.5, 0.8)
+        self.rover.setPos(0, -20, 2)
+        self.speed = 5
+
+        #  Update each frame
+        self.taskMgr.add(self.update, "Update")
+
+
+#moving the rectangle rover hopefully 
+    def update(self, task):
+
+        dt = globalClock.getDt()
+
+        self.rover.setY(self.rover, self.speed * dt)
+        return Task.cont
 
 app = LavaTubeSim()
 app.run()
