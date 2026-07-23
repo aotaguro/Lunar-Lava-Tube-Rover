@@ -2,7 +2,7 @@ from direct.showbase.ShowBase import ShowBase
 from direct.task import Task
 from panda3d.core import AmbientLight, DirectionalLight, Vec4
 from panda3d.core import LineSegs, NodePath
-
+from world import World
 from rover import Rover
 from lidar import LidarSensor
 
@@ -12,12 +12,12 @@ class LavaTubeSim(ShowBase):
    #constructer and ininitalizing panda3D
     def __init__(self):
         ShowBase.__init__(self)
-
-        #load lava tube
-        self.lavaTube = self.loader.loadModel("assets/lunarTube.glb")
+        #create world
+        self.world = World(self.render, self.loader)
+        self.lavaTube = self.world.getTube()
         self.lavaTube.reparentTo(self.render)
 
-        self.lavaTube.setPos(0,0,0)
+        self.lavaTube.setPos(0,0,0) 
         self.lavaTube.setScale(2)
         self.lavaTube.setHpr(0,90,0)
 
@@ -75,9 +75,10 @@ class LavaTubeSim(ShowBase):
 
     #camera follows rover
     def update(self, task):
-
+        
         dt = globalClock.getDt()
-
+        
+        self.world.update(dt)
         #move rover
         self.rover.update(dt)
 
