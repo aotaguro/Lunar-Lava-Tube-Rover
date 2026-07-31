@@ -43,8 +43,8 @@ class LavaTubeSim(ShowBase):
         #create rover
         self.rover = Rover(self.render, self.loader)
 
-        #create lidar
-        self.lidar = LidarSensor(self.rover)
+        #create lidar now with world physics
+        self.lidar = LidarSensor(self.rover, self.world)
 
         #node used to draw lidar beams
         self.lidarLines = self.render.attachNewNode("LiDAR")

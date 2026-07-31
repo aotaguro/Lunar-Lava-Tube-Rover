@@ -1,19 +1,12 @@
 import math
 
-from panda3d.core import (
-    CollisionTraverser,
-    CollisionNode,
-    CollisionRay,
-    CollisionHandlerQueue,
-    BitMask32,
-    Point3
-)
-from panda3d.bullet import BulletWorld
+from panda3d.core import Point3
+
 
 #stores information about one lidar beam
 class LidarHit:
 
-    def __init__(self, angle, startX, startY, endX, endY):
+    def __init__(self, angle, startX, startY, endX, endY, distance, hit):
 
         self.angle = angle
 
@@ -23,14 +16,23 @@ class LidarHit:
         self.endX = endX
         self.endY = endY
 
+        #distance from rover to hit point
+        self.distance = distance
 
-#simulated lidar sensor thats moved over from previous github push 
+        #true if beam hit something
+        self.hit = hit
+
+
+#simulated lidar sensor
 class LidarSensor:
 
-    def __init__(self, rover):
+    def __init__(self, rover, world):
 
         #reference to rover
         self.rover = rover
+
+        #reference to bullet world
+        self.world = world
 
         #5 degree spacing
         self.numRays = 72
@@ -50,24 +52,67 @@ class LidarSensor:
 
         angleStep = 360 / self.numRays
 
+        #current rover position
+        startX = self.rover.getModel().getX()
+        startY = self.rover.getModel().getY()
+        startZ = self.rover.getModel().getZ()
+
+        #shoot every lidar beam
         for i in range(self.numRays):
 
             angle = math.radians(i * angleStep)
 
-            startX = self.rover.getModel().getX()
-            startY = self.rover.getModel().getY()
+            #direction of beam
+            dirX = math.cos(angle)
+            dirY = math.sin(angle)
 
-            endX = startX + math.cos(angle) * self.maxDistance
-            endY = startY + math.sin(angle) * self.maxDistance
+            #maximum beam length
+            endX = startX + dirX * self.maxDistance
+            endY = startY + dirY * self.maxDistance
+            endZ = startZ
 
-            hit = LidarHit(
-                angle,
-                startX,
-                startY,
-                endX,
-                endY
+            #start and end points for bullet
+            startPoint = Point3(startX, startY, startZ)
+            endPoint = Point3(endX, endY, endZ)
+
+            #shoot ray into physics world
+            result = self.world.getWorld().rayTestClosest(startPoint, endPoint)
+
+            #if something was hit
+            if result.hasHit():
+
+                hitPos = result.getHitPos()
+
+                endX = hitPos.x
+                endY = hitPos.y
+                endZ = hitPos.z
+
+                distance = (hitPos - startPoint).length()
+
+                hit = True
+
+            #nothing was hit
+            else:
+
+                distance = self.maxDistance
+
+                hit = False
+
+            #save beam
+            self.scanPoints.append(
+
+                LidarHit(
+
+                    angle,
+                    startX,
+                    startY,
+                    endX,
+                    endY,
+                    distance,
+                    hit
+
+                )
+
             )
-
-            self.scanPoints.append(hit)
 
         return self.scanPoints
