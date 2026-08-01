@@ -23,8 +23,10 @@ class LidarHit:
         self.hit = hit
 
 
+
 #simulated lidar sensor
 class LidarSensor:
+
 
     def __init__(self, rover, world):
 
@@ -44,52 +46,110 @@ class LidarSensor:
         self.scanPoints = []
 
 
+
     #perform one scan
     def scan(self):
 
         #clear previous scan
         self.scanPoints.clear()
 
+
         angleStep = 360 / self.numRays
 
+
         #current rover position
-        startX = self.rover.getModel().getX()
-        startY = self.rover.getModel().getY()
-        startZ = self.rover.getModel().getZ()
+        roverModel = self.rover.getModel()
+
+        startX = roverModel.getX()
+        startY = roverModel.getY()
+        startZ = roverModel.getZ()
+
+
+        #NEW
+        #get rover rotation
+        #allows lidar to rotate with rover
+        roverHeading = roverModel.getH()
+
+
 
         #shoot every lidar beam
         for i in range(self.numRays):
 
-            angle = math.radians(i * angleStep)
+
+            #beam angle relative to lidar
+            localAngle = i * angleStep
+
+
+            #convert to radians
+            angle = math.radians(localAngle)
+
+
+            #NEW
+            #convert lidar angle into world angle
+            #by adding rover rotation
+            worldAngle = angle + math.radians(roverHeading)
+
+
 
             #direction of beam
-            dirX = math.cos(angle)
-            dirY = math.sin(angle)
+            dirX = math.cos(worldAngle)
+            dirY = math.sin(worldAngle)
+
+
 
             #maximum beam length
             endX = startX + dirX * self.maxDistance
             endY = startY + dirY * self.maxDistance
             endZ = startZ
 
+
+
             #start and end points for bullet
-            startPoint = Point3(startX, startY, startZ)
-            endPoint = Point3(endX, endY, endZ)
+            startPoint = Point3(
+                startX,
+                startY,
+                startZ
+            )
+
+
+            endPoint = Point3(
+                endX,
+                endY,
+                endZ
+            )
+
+
 
             #shoot ray into physics world
-            result = self.world.getWorld().rayTestClosest(startPoint, endPoint)
+            result = self.world.getWorld().rayTestClosest(
+                startPoint,
+                endPoint
+            )
+
+
 
             #if something was hit
             if result.hasHit():
 
+
+                #get actual collision location
                 hitPos = result.getHitPos()
 
+
+                #replace fake endpoint
+                #with actual wall location
                 endX = hitPos.x
                 endY = hitPos.y
-                endZ = hitPos.z
 
-                distance = (hitPos - startPoint).length()
+
+                distance = (
+                    hitPos - startPoint
+                ).length()
+
 
                 hit = True
+
+
 
             #nothing was hit
             else:
@@ -98,12 +158,14 @@ class LidarSensor:
 
                 hit = False
 
+
+
             #save beam
             self.scanPoints.append(
 
                 LidarHit(
 
-                    angle,
+                    localAngle,
                     startX,
                     startY,
                     endX,
@@ -114,5 +176,6 @@ class LidarSensor:
                 )
 
             )
+
 
         return self.scanPoints

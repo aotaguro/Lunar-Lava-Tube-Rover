@@ -12,7 +12,7 @@ class Rover:
         self.model.setScale(1.5, 2.5, 0.8)
         self.model.setPos(0, -20, 2)
 
-        self.speed = 5
+        self.speed = 2
 
 
     def update(self, dt):

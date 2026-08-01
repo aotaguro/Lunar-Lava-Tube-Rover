@@ -2,10 +2,11 @@ from direct.showbase.ShowBase import ShowBase
 from direct.task import Task
 from panda3d.core import AmbientLight, DirectionalLight, Vec4
 from panda3d.core import LineSegs, NodePath
+from yaml import scan
 from world import World
 from rover import Rover
 from lidar import LidarSensor
-
+from pointcloud import PointCloud
 
 class LavaTubeSim(ShowBase):
 
@@ -49,6 +50,9 @@ class LavaTubeSim(ShowBase):
         #node used to draw lidar beams
         self.lidarLines = self.render.attachNewNode("LiDAR")
 
+        #point cloud generator
+        self.pointCloud = PointCloud()
+
         #update each frame
         self.taskMgr.add(self.update,"Update")
 
@@ -83,7 +87,24 @@ class LavaTubeSim(ShowBase):
         self.rover.update(dt)
 
         #lidar scan
-        self.lidar.scan()
+        scan = self.lidar.scan()
+        #generate point cloud
+        points = self.pointCloud.createPointCloud(scan)
+        for point in points:
+            print(
+                point.x,
+                point.y,
+                point.z
+    )
+        for point in scan:
+            print(
+                "Angle:",
+                     point.angle,
+                "Distance:",
+            round(point.distance, 2),
+                "Hit:",
+                point.hit
+    )
 
         #draw lidar
         self.drawLidar()
