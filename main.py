@@ -10,7 +10,7 @@ from lidar import LidarSensor
 from pointcloud import PointCloud
 from occupancy_grid import OccupancyGrid
 from frontier import FrontierDetector
-
+from planner import FrontierPlanner
 
 class LavaTubeSim(ShowBase):
 
@@ -89,7 +89,8 @@ class LavaTubeSim(ShowBase):
 
         # frontier detection
         self.frontier = FrontierDetector()
-
+        # Fronter planner
+        self.planner = FrontierPlanner()
 
         # update loop
         self.taskMgr.add(
@@ -168,8 +169,26 @@ class LavaTubeSim(ShowBase):
         # detect frontiers
         frontiers = self.frontier.detect(grid)
 
-        print("Frontiers:", len(frontiers))
 
+        print(
+            "Frontiers:",
+            len(frontiers)
+        )
+
+
+        target = self.planner.chooseFrontier(
+            self.rover,
+            frontiers
+        )
+
+
+        if target:
+
+            print(
+                "Target frontier:",
+                target.x,
+                target.y
+    )
 
 
         # print map every 5 seconds
