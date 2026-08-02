@@ -9,6 +9,7 @@ from rover import Rover
 from lidar import LidarSensor
 from pointcloud import PointCloud
 from occupancy_grid import OccupancyGrid
+from frontier import FrontierDetector
 
 
 class LavaTubeSim(ShowBase):
@@ -18,99 +19,39 @@ class LavaTubeSim(ShowBase):
 
         ShowBase.__init__(self)
 
-
         # create world
-        self.world = World(
-            self.render,
-            self.loader
-        )
+        self.world = World(self.render, self.loader)
 
         self.lavaTube = self.world.getTube()
+        self.lavaTube.reparentTo(self.render)
 
-        self.lavaTube.reparentTo(
-            self.render
-        )
-
-        self.lavaTube.setPos(
-            0,
-            0,
-            0
-        )
-
+        self.lavaTube.setPos(0,0,0)
         self.lavaTube.setScale(2)
-
-        self.lavaTube.setHpr(
-            0,
-            90,
-            0
-        )
-
+        self.lavaTube.setHpr(0,90,0)
 
 
         # camera
         self.disableMouse()
 
-        self.camera.setPos(
-            0,
-            -30,
-            5
-        )
-
-        self.camera.lookAt(
-            0,
-            0,
-            0
-        )
-
+        self.camera.setPos(0,-30,5)
+        self.camera.lookAt(0,0,0)
 
 
         # lighting
         ambient = AmbientLight("ambient")
+        ambient.setColor(Vec4(0.6,0.6,0.6,1))
 
-        ambient.setColor(
-            Vec4(
-                0.6,
-                0.6,
-                0.6,
-                1
-            )
-        )
-
-        ambientNP = self.render.attachNewNode(
-            ambient
-        )
-
-        self.render.setLight(
-            ambientNP
-        )
+        ambientNP = self.render.attachNewNode(ambient)
+        self.render.setLight(ambientNP)
 
 
-
-        # directional lighting
         sun = DirectionalLight("sun")
+        sun.setColor(Vec4(1,1,1,1))
 
-        sun.setColor(
-            Vec4(
-                1,
-                1,
-                1,
-                1
-            )
-        )
+        sunNP = self.render.attachNewNode(sun)
+        sunNP.setHpr(-45,-45,0)
 
-        sunNP = self.render.attachNewNode(
-            sun
-        )
-
-        sunNP.setHpr(
-            -45,
-            -45,
-            0
-        )
-
-        self.render.setLight(
-            sunNP
-        )
+        self.render.setLight(sunNP)
 
 
 
@@ -121,29 +62,24 @@ class LavaTubeSim(ShowBase):
         )
 
 
-
-        # create lidar with access to physics world
+        # create lidar
         self.lidar = LidarSensor(
             self.rover,
             self.world
         )
 
 
-
-        # node used to draw lidar beams
-        self.lidarLines = self.render.attachNewNode(
-            "LiDAR"
-        )
+        # lidar drawing node
+        self.lidarLines = self.render.attachNewNode("LiDAR")
 
 
-
-        # point cloud generator
+        # point cloud
         self.pointCloud = PointCloud()
 
 
-
         # occupancy grid
-        # width, height, meters per cell
+        # width, height, cell size
+
         self.map = OccupancyGrid(
             100,
             100,
@@ -151,13 +87,15 @@ class LavaTubeSim(ShowBase):
         )
 
 
+        # frontier detection
+        self.frontier = FrontierDetector()
 
-        # update every frame
+
+        # update loop
         self.taskMgr.add(
             self.update,
             "Update"
         )
-
 
 
 
@@ -166,25 +104,14 @@ class LavaTubeSim(ShowBase):
 
         self.lidarLines.removeNode()
 
-        self.lidarLines = self.render.attachNewNode(
-            "LiDAR"
-        )
-
+        self.lidarLines = self.render.attachNewNode("LiDAR")
 
         lines = LineSegs()
 
         lines.setThickness(2)
-
-        lines.setColor(
-            0,
-            1,
-            0,
-            1
-        )
+        lines.setColor(0,1,0,1)
 
 
-
-        # draw lidar beams
         for hit in self.lidar.scanPoints:
 
             lines.moveTo(
@@ -200,14 +127,11 @@ class LavaTubeSim(ShowBase):
             )
 
 
-
         node = lines.create()
 
         NodePath(node).reparentTo(
             self.lidarLines
         )
-
-
 
 
 
@@ -217,33 +141,58 @@ class LavaTubeSim(ShowBase):
         dt = globalClock.getDt()
 
 
-
-        # update physics
+        # physics update
         self.world.update(dt)
 
 
-
-        # update rover movement
+        # rover movement
         self.rover.update(dt)
 
 
 
-        # perform lidar scan
+        # lidar scan
         scan = self.lidar.scan()
 
 
-
-        # convert lidar data into point cloud
-        points = self.pointCloud.createPointCloud(
-            scan
-        )
+        # create point cloud
+        points = self.pointCloud.createPointCloud(scan)
 
 
+        # update map
+        self.map.update(points)
 
-        # update occupancy map
-        self.map.update(
-            points
-        )
+        grid = self.map.getGrid()
+
+
+
+        # detect frontiers
+        frontiers = self.frontier.detect(grid)
+
+        print("Frontiers:", len(frontiers))
+
+
+
+        # print map every 5 seconds
+        if int(task.time) % 5 == 0:
+
+            for row in grid:
+
+                line = ""
+
+                for cell in row:
+
+                    if cell == 1:
+                        line += "#"
+
+                    elif cell == 0:
+                        line += "."
+
+                    else:
+                        line += " "
+
+                print(line)
+
+            print("----------------")
 
 
 
@@ -252,11 +201,11 @@ class LavaTubeSim(ShowBase):
 
 
 
-        # camera follows rover
+        # follow rover
         self.camera.setPos(
             self.rover.getModel().getX(),
-            self.rover.getModel().getY() - 15,
-            self.rover.getModel().getZ() + 6
+            self.rover.getModel().getY()-15,
+            self.rover.getModel().getZ()+6
         )
 
         self.camera.lookAt(
@@ -265,7 +214,6 @@ class LavaTubeSim(ShowBase):
 
 
         return Task.cont
-
 
 
 

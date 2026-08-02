@@ -1,34 +1,36 @@
-import math
-
-
-
-#creates a 2D occupancy grid map
+#stores a simple occupancy grid map
 class OccupancyGrid:
 
 
-    def __init__(self, width, height, resolution):
+    def __init__(self, width, height, cellSize):
 
 
-        #number of cells horizontally
+        #number of cells in x direction
         self.width = width
 
-        #number of cells vertically
+
+        #number of cells in y direction
         self.height = height
 
 
-        #size of each grid cell in meters
-        self.resolution = resolution
+        #size of each cell in world units
+        self.cellSize = cellSize
+
+
+        #center of the map
+        self.originX = width // 2
+        self.originY = height // 2
 
 
 
-        #create empty map
-
-        #0 = unknown/free
-        #1 = occupied
+        #create unknown map
+        # -1 = unknown
+        #  0 = free space
+        #  1 = obstacle
 
         self.grid = [
 
-            [0 for x in range(width)]
+            [-1 for x in range(width)]
 
             for y in range(height)
 
@@ -36,40 +38,34 @@ class OccupancyGrid:
 
 
 
-    #convert world coordinates into grid coordinates
-    def worldToGrid(self, x, y):
+    #clear the map back to unknown
+    def clear(self):
 
 
-        gridX = int(
-            x / self.resolution
-            +
-            self.width / 2
-        )
+        for y in range(self.height):
 
+            for x in range(self.width):
 
-        gridY = int(
-            y / self.resolution
-            +
-            self.height / 2
-        )
-
-
-        return gridX, gridY
+                self.grid[y][x] = -1
 
 
 
 
-    #add lidar points to map
+
+    #convert lidar points into occupied cells
     def update(self, points):
 
 
         for point in points:
 
 
-            gridX, gridY = self.worldToGrid(
-                point.x,
-                point.y
-            )
+            worldX = point.x
+            worldY = point.y
+
+
+
+            gridX = int(worldX / self.cellSize) + self.originX
+            gridY = int(worldY / self.cellSize) + self.originY
 
 
 
@@ -77,25 +73,35 @@ class OccupancyGrid:
 
             if (
 
-                gridX >= 0 and
-
-                gridX < self.width and
-
-                gridY >= 0 and
-
-                gridY < self.height
+                0 <= gridX < self.width and
+                0 <= gridY < self.height
 
             ):
 
 
-                #mark obstacle
+                #this location contains a wall
 
                 self.grid[gridY][gridX] = 1
 
 
 
 
-    #return current map
+
+    #convert world position to grid position
+    def worldToGrid(self, x, y):
+
+
+        gridX = int(x / self.cellSize) + self.originX
+        gridY = int(y / self.cellSize) + self.originY
+
+
+        return gridX, gridY
+
+
+
+
+
+    #get current map
     def getGrid(self):
 
         return self.grid
