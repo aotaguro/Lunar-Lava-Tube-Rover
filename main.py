@@ -19,19 +19,14 @@ from planner import FrontierPlanner
 from astar import AStar
 
 
-
 class LavaTubeSim(ShowBase):
-
 
     def __init__(self):
 
         ShowBase.__init__(self)
 
 
-        # -------------------------
-        # WORLD
-        # -------------------------
-
+        # create world
         self.world = World(
             self.render,
             self.loader
@@ -62,11 +57,7 @@ class LavaTubeSim(ShowBase):
         )
 
 
-
-        # -------------------------
-        # CAMERA
-        # -------------------------
-
+        # camera position
         self.disableMouse()
 
         self.camera.setPos(
@@ -82,11 +73,7 @@ class LavaTubeSim(ShowBase):
         )
 
 
-
-        # -------------------------
-        # LIGHTING
-        # -------------------------
-
+        # lighting
         ambient = AmbientLight(
             "ambient"
         )
@@ -108,7 +95,6 @@ class LavaTubeSim(ShowBase):
         self.render.setLight(
             ambientNP
         )
-
 
 
         sun = DirectionalLight(
@@ -140,11 +126,7 @@ class LavaTubeSim(ShowBase):
         )
 
 
-
-        # -------------------------
-        # ROBOT SYSTEMS
-        # -------------------------
-
+        # rover systems
         self.rover = Rover(
             self.render,
             self.loader
@@ -165,7 +147,6 @@ class LavaTubeSim(ShowBase):
         self.pointCloud = PointCloud()
 
 
-
         self.map = OccupancyGrid(
             100,
             100,
@@ -173,24 +154,18 @@ class LavaTubeSim(ShowBase):
         )
 
 
-
         # exploration systems
-
         self.frontier = FrontierDetector()
 
         self.planner = FrontierPlanner()
 
 
         # path planner
-
         self.astar = AStar()
 
 
-
-        # stores current path
-
+        # stores the current rover path
         self.currentPath = []
-
 
 
         self.taskMgr.add(
@@ -200,14 +175,8 @@ class LavaTubeSim(ShowBase):
 
 
 
-
-
-    # -------------------------
-    # DRAW LIDAR
-    # -------------------------
-
+    # draw lidar beams
     def drawLidar(self):
-
 
         self.lidarLines.removeNode()
 
@@ -219,11 +188,9 @@ class LavaTubeSim(ShowBase):
 
         lines = LineSegs()
 
-
         lines.setThickness(
             2
         )
-
 
         lines.setColor(
             0,
@@ -235,20 +202,17 @@ class LavaTubeSim(ShowBase):
 
         for hit in self.lidar.scanPoints:
 
-
             lines.moveTo(
                 hit.startX,
                 hit.startY,
                 2
             )
 
-
             lines.drawTo(
                 hit.endX,
                 hit.endY,
                 2
             )
-
 
 
         node = lines.create()
@@ -260,51 +224,35 @@ class LavaTubeSim(ShowBase):
 
 
 
-
-
-    # -------------------------
-    # UPDATE LOOP
-    # -------------------------
-
+    # update simulation
     def update(self, task):
-
 
         dt = globalClock.getDt()
 
 
-
-        # physics
-
+        # update physics
         self.world.update(
             dt
         )
 
 
-
-        # rover movement
-
+        # update rover movement
         self.rover.update(
             dt
         )
 
 
-
         # lidar scan
-
         scan = self.lidar.scan()
 
 
-
-        # point cloud
-
+        # create point cloud
         points = self.pointCloud.createPointCloud(
             scan
         )
 
 
-
-        # update map
-
+        # update occupancy map
         self.map.update(
             points
         )
@@ -314,10 +262,7 @@ class LavaTubeSim(ShowBase):
 
 
 
-        # -------------------------
-        # FRONTIER DETECTION
-        # -------------------------
-
+        # find exploration areas
         frontiers = self.frontier.detect(
             grid
         )
@@ -330,17 +275,14 @@ class LavaTubeSim(ShowBase):
 
 
 
-        # choose exploration target
-
+        # choose best frontier
         target = self.planner.chooseFrontier(
             self.rover,
             frontiers
         )
 
 
-
         if target:
-
 
             print(
                 "Target frontier:",
@@ -349,9 +291,7 @@ class LavaTubeSim(ShowBase):
             )
 
 
-
-            # rover position in grid
-
+            # convert rover position into grid coordinates
             rover = self.rover.getModel()
 
 
@@ -361,28 +301,20 @@ class LavaTubeSim(ShowBase):
             )
 
 
-
-            # run A*
-
+            # calculate path to frontier
             self.currentPath = self.astar.findPath(
-
                 grid,
-
                 roverGX,
                 roverGY,
-
                 target.x,
                 target.y
-
             )
-
 
 
             print(
                 "A* Path length:",
                 len(self.currentPath)
             )
-
 
 
             if self.currentPath:
@@ -395,27 +327,16 @@ class LavaTubeSim(ShowBase):
                 )
 
 
-
-
-
-        # -------------------------
-        # DRAW
-        # -------------------------
-
+        # draw lidar
         self.drawLidar()
 
 
 
-        # camera follow
-
+        # camera follows rover
         self.camera.setPos(
-
             self.rover.getModel().getX(),
-
-            self.rover.getModel().getY()-15,
-
-            self.rover.getModel().getZ()+6
-
+            self.rover.getModel().getY() - 15,
+            self.rover.getModel().getZ() + 6
         )
 
 
@@ -424,10 +345,7 @@ class LavaTubeSim(ShowBase):
         )
 
 
-
         return Task.cont
-
-
 
 
 

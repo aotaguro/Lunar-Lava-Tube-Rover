@@ -1,4 +1,4 @@
-#stores one frontier location
+# stores one frontier location
 class Frontier:
 
     def __init__(self, x, y):
@@ -8,7 +8,7 @@ class Frontier:
 
 
 
-#finds exploration frontiers
+# finds unexplored areas near known space
 class FrontierDetector:
 
     def __init__(self):
@@ -17,7 +17,7 @@ class FrontierDetector:
 
 
 
-    #search occupancy grid
+    # checks the map for frontier cells
     def detect(self, grid):
 
         frontiers = []
@@ -25,15 +25,17 @@ class FrontierDetector:
         rows = len(grid)
         cols = len(grid[0])
 
+
         for y in range(1, rows - 1):
 
             for x in range(1, cols - 1):
 
-                #skip occupied cells
+                # skip walls
                 if grid[y][x] == 1:
                     continue
 
-                #look at neighboring cells
+
+                # check nearby cells
                 neighbors = [
 
                     grid[y-1][x],
@@ -43,11 +45,13 @@ class FrontierDetector:
 
                 ]
 
-                #frontier if any neighbor is occupied
+
+                # frontier is open space next to a wall
                 if 1 in neighbors:
 
                     frontiers.append(
                         Frontier(x, y)
                     )
+
 
         return frontiers
