@@ -11,6 +11,8 @@ from pointcloud import PointCloud
 from occupancy_grid import OccupancyGrid
 from frontier import FrontierDetector
 from planner import FrontierPlanner
+from astar import AStar
+
 
 class LavaTubeSim(ShowBase):
 
@@ -92,6 +94,7 @@ class LavaTubeSim(ShowBase):
         # Fronter planner
         self.planner = FrontierPlanner()
 
+
         # update loop
         self.taskMgr.add(
             self.update,
@@ -170,12 +173,12 @@ class LavaTubeSim(ShowBase):
         frontiers = self.frontier.detect(grid)
 
 
-        print(
-            "Frontiers:",
-            len(frontiers)
-        )
-
-
+        if int(task.time) % 2 == 0:
+            print(
+                "Frontiers:",
+                len(frontiers)
+            )
+    
         target = self.planner.chooseFrontier(
             self.rover,
             frontiers
@@ -183,12 +186,12 @@ class LavaTubeSim(ShowBase):
 
 
         if target:
-
-            print(
-                "Target frontier:",
-                target.x,
-                target.y
-    )
+            if int(task.time) % 2 == 0:
+                print(
+                    "Target frontier:",
+                    target.x,
+                    target.y
+        )
 
 
         # print map every 5 seconds
