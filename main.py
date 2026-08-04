@@ -1,11 +1,13 @@
 from direct.showbase.ShowBase import ShowBase
 from direct.task import Task
+import math
 from panda3d.core import AmbientLight, DirectionalLight, LineSegs, NodePath, Vec4
 
 from astar import AStar
 from frontier import FrontierDetector
 from frontier_planner import FrontierPlanner
 from lidar import LidarSensor
+from map_view import MapView
 from occupancy_grid import OccupancyGrid
 from path_follower import PathFollower
 from pointcloud import PointCloud
@@ -76,6 +78,14 @@ class LavaTubeSim(ShowBase):
         self.currentPath = []
         self.currentTarget = None
         self.lastStatusTime = -1
+        self.cameraDistance = 8
+        self.cameraHeight = 3.5
+
+        # create visual slam map
+        self.mapView = MapView(
+            self.a2dTopRight,
+            self.map
+        )
 
         self.taskMgr.add(
             self.update,
@@ -211,7 +221,7 @@ class LavaTubeSim(ShowBase):
         if self.pathFollower.isBlocked():
 
             if self.currentTarget is not None:
-                self.planner.addVisited(self.currentTarget)
+                self.planner.addFailed(self.currentTarget)
 
             self.pathFollower.clearPath()
             self.currentPath = []
@@ -248,16 +258,32 @@ class LavaTubeSim(ShowBase):
         # draw lidar
         self.drawLidar()
 
-        # camera follows rover
-        roverModel = self.rover.getModel()
-
-        self.camera.setPos(
-            roverModel.getX(),
-            roverModel.getY() - 15,
-            roverModel.getZ() + 6
+        # update visual slam map
+        self.mapView.draw(
+            task.time,
+            self.rover,
+            self.currentPath,
+            self.currentTarget
         )
 
-        self.camera.lookAt(roverModel)
+        # camera follows behind rover
+        roverModel = self.rover.getModel()
+        heading = math.radians(roverModel.getH())
+
+        forwardX = -math.sin(heading)
+        forwardY = math.cos(heading)
+
+        self.camera.setPos(
+            roverModel.getX() - forwardX * self.cameraDistance,
+            roverModel.getY() - forwardY * self.cameraDistance,
+            roverModel.getZ() + self.cameraHeight
+        )
+
+        self.camera.lookAt(
+            roverModel.getX() + forwardX * 2,
+            roverModel.getY() + forwardY * 2,
+            roverModel.getZ() + 0.5
+        )
 
         self.printStatus(
             task,

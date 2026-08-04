@@ -87,18 +87,52 @@ class World:
         else:
             print("No hit")
 
-    # check physical cave collision between two positions
-    def isPathClear(self, startX, startY, endX, endY, z):
+    # check movement using several points around the rover body
+    def isRoverMoveClear(
+        self,
+        startX,
+        startY,
+        endX,
+        endY,
+        z,
+        radius=1.1
+    ):
 
-        start = Point3(startX, startY, z)
-        end = Point3(endX, endY, z)
+        offsets = [
+            (0, 0),
+            (radius, 0),
+            (-radius, 0),
+            (0, radius),
+            (0, -radius),
+            (radius * 0.7, radius * 0.7),
+            (radius * 0.7, -radius * 0.7),
+            (-radius * 0.7, radius * 0.7),
+            (-radius * 0.7, -radius * 0.7)
+        ]
 
-        result = self.world.rayTestClosest(
-            start,
-            end
-        )
+        for offsetX, offsetY in offsets:
 
-        return not result.hasHit()
+            start = Point3(
+                startX + offsetX,
+                startY + offsetY,
+                z
+            )
+
+            end = Point3(
+                endX + offsetX,
+                endY + offsetY,
+                z
+            )
+
+            result = self.world.rayTestClosest(
+                start,
+                end
+            )
+
+            if result.hasHit():
+                return False
+
+        return True
 
     def update(self, dt):
 

@@ -9,6 +9,7 @@ class PathFollower:
         self.currentIndex = 0
         self.speed = 2
         self.blocked = False
+        self.blockedFrames = 0
 
     # give follower a new path
     def setPath(self, path):
@@ -16,12 +17,15 @@ class PathFollower:
         self.path = path
         self.currentIndex = 1 if len(path) > 1 else len(path)
         self.blocked = False
+        self.blockedFrames = 0
 
     # clear current path
     def clearPath(self):
 
         self.path = []
         self.currentIndex = 0
+        self.blocked = False
+        self.blockedFrames = 0
 
     # move rover along path
     def update(self, rover, gridMap, world, dt):
@@ -34,9 +38,9 @@ class PathFollower:
         if not gridMap.isSafeCell(
             gridX,
             gridY,
-            clearance=0
+            clearance=1
         ):
-            self.blocked = True
+            self.setBlocked()
             return
 
         targetX, targetY = gridMap.gridToWorld(
@@ -57,8 +61,9 @@ class PathFollower:
             directionY
         )
 
-        if distance < 0.25:
+        if distance < 0.3:
             self.currentIndex += 1
+            self.blockedFrames = 0
             return
 
         directionX /= distance
@@ -80,21 +85,22 @@ class PathFollower:
         if not gridMap.isSafeCell(
             newGX,
             newGY,
-            clearance=0
+            clearance=1
         ):
-            self.blocked = True
+            self.setBlocked()
             return
 
         lidarHeight = model.getZ() + 0.8
 
-        if not world.isPathClear(
+        if not world.isRoverMoveClear(
             currentX,
             currentY,
             newX,
             newY,
-            lidarHeight
+            lidarHeight,
+            radius=1.1
         ):
-            self.blocked = True
+            self.setBlocked()
             return
 
         heading = math.degrees(
@@ -107,6 +113,16 @@ class PathFollower:
         model.setH(heading)
         model.setX(newX)
         model.setY(newY)
+
+        self.blocked = False
+        self.blockedFrames = 0
+
+    def setBlocked(self):
+
+        self.blockedFrames += 1
+
+        if self.blockedFrames >= 3:
+            self.blocked = True
 
     def isBlocked(self):
 
