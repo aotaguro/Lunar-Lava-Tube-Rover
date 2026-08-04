@@ -1,69 +1,124 @@
 import math
 
 
-# chooses which frontier the rover should explore
 class FrontierPlanner:
 
 
     def __init__(self):
 
-        # stores current exploration target
-        self.target = None
+        # previously explored frontier locations
+        self.visited = []
 
 
 
-    # chooses closest frontier
-    def chooseFrontier(self, rover, frontiers):
+    def chooseFrontier(self, rover, frontiers, gridMap):
 
 
-        # no frontiers found
         if len(frontiers) == 0:
 
             return None
 
 
 
-        # rover position
-        roverX = rover.getModel().getX()
-        roverY = rover.getModel().getY()
+        roverModel = rover.getModel()
+
+
+        roverX = roverModel.getX()
+        roverY = roverModel.getY()
 
 
 
-        closest = None
+        # convert rover world position to grid position
 
-        closestDistance = float("inf")
+        roverGX, roverGY = gridMap.worldToGrid(
+            roverX,
+            roverY
+        )
 
 
 
-        # check every frontier
+        best = None
+
+        bestScore = float("inf")
+
+
+
         for frontier in frontiers:
 
 
 
-            # calculate distance to frontier
-            distance = math.sqrt(
+            # ignore already explored areas
 
-                (frontier.x - roverX) ** 2 +
+            alreadyVisited = False
 
-                (frontier.y - roverY) ** 2
+
+
+            for old in self.visited:
+
+
+                distance = math.hypot(
+
+                    frontier.x - old[0],
+
+                    frontier.y - old[1]
+
+                )
+
+
+                if distance < 10:
+
+                    alreadyVisited = True
+                    break
+
+
+
+            if alreadyVisited:
+
+                continue
+
+
+
+            # compare grid coordinates
+
+            distance = math.hypot(
+
+                frontier.x - roverGX,
+
+                frontier.y - roverGY
 
             )
 
 
 
-            # if this is closest
-            if distance < closestDistance:
+            if distance < bestScore:
 
 
-                closestDistance = distance
+                bestScore = distance
 
-                closest = frontier
-
-
-
-        # store selected target
-        self.target = closest
+                best = frontier
 
 
 
-        return closest
+        return best
+
+
+
+
+
+    def addVisited(self, frontier):
+
+
+        if frontier is None:
+
+            return
+
+
+
+        self.visited.append(
+
+            (
+                frontier.x,
+                frontier.y
+            )
+
+        )

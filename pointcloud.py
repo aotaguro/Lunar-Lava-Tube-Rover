@@ -43,5 +43,5 @@ class PointCloud:
                 )
 
             )
-
+                
         return self.points

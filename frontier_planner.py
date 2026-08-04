@@ -1,52 +1,75 @@
 import math
 
 
-#chooses which frontier the rover should explore
 class FrontierPlanner:
-
 
     def __init__(self):
 
-        pass
+        self.visited = []
+        self.visitedRadius = 6
 
+    # choose a useful frontier that has not been visited
+    def chooseFrontier(self, rover, frontiers, gridMap):
 
-    #returns the closest frontier
-    def chooseFrontier(
-        self,
-        frontiers,
-        roverX,
-        roverY
-    ):
-
-        #no frontiers found
-        if len(frontiers) == 0:
-
+        if not frontiers:
             return None
 
+        roverModel = rover.getModel()
 
-        closest = None
+        roverGX, roverGY = gridMap.worldToGrid(
+            roverModel.getX(),
+            roverModel.getY()
+        )
 
-        shortestDistance = float("inf")
+        best = None
+        bestScore = float("inf")
 
-
-        #check every frontier
         for frontier in frontiers:
 
+            if self.wasVisited(frontier):
+                continue
 
-            dx = frontier.x - roverX
-            dy = frontier.y - roverY
+            if not gridMap.isSafeCell(
+                frontier.x,
+                frontier.y,
+                clearance=1
+            ):
+                continue
 
-            distance = math.sqrt(
-                dx * dx +
-                dy * dy
+            distance = math.hypot(
+                frontier.x - roverGX,
+                frontier.y - roverGY
             )
 
+            # larger frontier groups are more useful
+            score = distance - frontier.size * 0.75
 
-            if distance < shortestDistance:
+            if score < bestScore:
+                bestScore = score
+                best = frontier
 
-                shortestDistance = distance
+        return best
 
-                closest = frontier
+    def wasVisited(self, frontier):
 
+        for oldX, oldY in self.visited:
 
-        return closest
+            if math.hypot(
+                frontier.x - oldX,
+                frontier.y - oldY
+            ) < self.visitedRadius:
+                return True
+
+        return False
+
+    def addVisited(self, frontier):
+
+        if frontier is None:
+            return
+
+        self.visited.append(
+            (
+                frontier.x,
+                frontier.y
+            )
+        )

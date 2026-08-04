@@ -3,119 +3,118 @@ import math
 
 class PathFollower:
 
-
     def __init__(self):
 
-        # current path from A*
         self.path = []
-
-        # which point the rover is moving toward
         self.currentIndex = 0
-
-        # movement speed
         self.speed = 2
+        self.blocked = False
 
-
-
-    # give the follower a new path
+    # give follower a new path
     def setPath(self, path):
 
         self.path = path
+        self.currentIndex = 1 if len(path) > 1 else len(path)
+        self.blocked = False
 
+    # clear current path
+    def clearPath(self):
+
+        self.path = []
         self.currentIndex = 0
 
-
-
     # move rover along path
-    def update(self, rover, dt):
+    def update(self, rover, gridMap, world, dt):
 
-
-        # no path to follow
-        if len(self.path) == 0:
-
+        if self.finished():
             return
 
+        gridX, gridY = self.path[self.currentIndex]
 
-
-        # finished path
-        if self.currentIndex >= len(self.path):
-
+        if not gridMap.isSafeCell(
+            gridX,
+            gridY,
+            clearance=0
+        ):
+            self.blocked = True
             return
 
-
-
-        # current target grid location
-
-        targetX = self.path[self.currentIndex][0]
-
-        targetY = self.path[self.currentIndex][1]
-
-
-
-        # get rover position
+        targetX, targetY = gridMap.gridToWorld(
+            gridX,
+            gridY
+        )
 
         model = rover.getModel()
 
-
         currentX = model.getX()
-
         currentY = model.getY()
 
+        directionX = targetX - currentX
+        directionY = targetY - currentY
 
-
-        # find direction to target
-
-        dx = targetX - currentX
-
-        dy = targetY - currentY
-
-
-
-        distance = math.sqrt(
-
-            dx * dx +
-            dy * dy
-
+        distance = math.hypot(
+            directionX,
+            directionY
         )
 
-
-
-        # reached waypoint
-
-        if distance < 0.2:
-
-
+        if distance < 0.25:
             self.currentIndex += 1
-
             return
 
+        directionX /= distance
+        directionY /= distance
 
-
-        # normalize direction
-
-        dx /= distance
-
-        dy /= distance
-
-
-
-        # move rover
-
-        model.setX(
-
-            model.getX() +
-            dx *
-            self.speed *
-            dt
-
+        movement = min(
+            self.speed * dt,
+            distance
         )
 
+        newX = currentX + directionX * movement
+        newY = currentY + directionY * movement
 
-        model.setY(
+        newGX, newGY = gridMap.worldToGrid(
+            newX,
+            newY
+        )
 
-            model.getY() +
-            dy *
-            self.speed *
-            dt
+        if not gridMap.isSafeCell(
+            newGX,
+            newGY,
+            clearance=0
+        ):
+            self.blocked = True
+            return
 
+        lidarHeight = model.getZ() + 0.8
+
+        if not world.isPathClear(
+            currentX,
+            currentY,
+            newX,
+            newY,
+            lidarHeight
+        ):
+            self.blocked = True
+            return
+
+        heading = math.degrees(
+            math.atan2(
+                directionY,
+                directionX
+            )
+        ) - 90
+
+        model.setH(heading)
+        model.setX(newX)
+        model.setY(newY)
+
+    def isBlocked(self):
+
+        return self.blocked
+
+    def finished(self):
+
+        return (
+            not self.path or
+            self.currentIndex >= len(self.path)
         )
