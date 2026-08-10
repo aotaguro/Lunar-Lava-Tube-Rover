@@ -7,8 +7,18 @@ class FrontierPlanner:
 
         self.visited = []
         self.failed = []
-        self.visitedRadius = 3
+
+        # only block frontiers very close to old completed targets
+        self.visitedRadius = 1.5
         self.failedRadius = 2
+
+        # starting location is saved the first time a target is chosen
+        self.startX = None
+        self.startY = None
+
+        # once the rover moves away, keep it from choosing the entrance again
+        self.startAvoidDistance = 7
+        self.startBlockRadius = 5
 
     # choose the best frontier that has not been completed
     def chooseFrontier(self, rover, frontiers, gridMap):
@@ -21,6 +31,16 @@ class FrontierPlanner:
         roverGX, roverGY = gridMap.worldToGrid(
             roverModel.getX(),
             roverModel.getY()
+        )
+
+        # save the rover starting grid position
+        if self.startX is None:
+            self.startX = roverGX
+            self.startY = roverGY
+
+        roverStartDistance = math.hypot(
+            roverGX - self.startX,
+            roverGY - self.startY
         )
 
         best = None
@@ -38,6 +58,19 @@ class FrontierPlanner:
             ):
                 continue
 
+            frontierStartDistance = math.hypot(
+                frontier.x - self.startX,
+                frontier.y - self.startY
+            )
+
+            # after leaving the start, never choose the entrance area again
+            if (
+                roverStartDistance > self.startAvoidDistance
+                and
+                frontierStartDistance < self.startBlockRadius
+            ):
+                continue
+
             distance = math.hypot(
                 frontier.x - roverGX,
                 frontier.y - roverGY
@@ -46,13 +79,14 @@ class FrontierPlanner:
             failedPenalty = 0
 
             if self.wasFailed(frontier):
-                failedPenalty = 25
+                failedPenalty = 20
 
-            # prefer larger frontiers and avoid recently blocked targets
+            # prefer nearby large frontiers while still encouraging deeper exploration
             score = (
-                distance -
-                frontier.size * 0.75 +
-                failedPenalty
+                distance
+                - frontier.size * 0.75
+                - frontierStartDistance * 0.3
+                + failedPenalty
             )
 
             if score < bestScore:
@@ -113,3 +147,21 @@ class FrontierPlanner:
 
         if len(self.failed) > 20:
             self.failed.pop(0)
+
+    # return distance from the starting point for debugging
+    def getDistanceFromStart(self, rover, gridMap):
+
+        if self.startX is None:
+            return 0
+
+        roverModel = rover.getModel()
+
+        roverGX, roverGY = gridMap.worldToGrid(
+            roverModel.getX(),
+            roverModel.getY()
+        )
+
+        return math.hypot(
+            roverGX - self.startX,
+            roverGY - self.startY
+        )

@@ -64,8 +64,8 @@ class LavaTubeSim(ShowBase):
 
         # create map
         self.map = OccupancyGrid(
-            100,
-            100,
+            160,
+            160,
             1
         )
 
@@ -149,7 +149,7 @@ class LavaTubeSim(ShowBase):
 
         if not self.currentPath:
 
-            self.planner.addVisited(
+            self.planner.addFailed(
                 self.currentTarget
             )
 
@@ -165,7 +165,15 @@ class LavaTubeSim(ShowBase):
             self.currentTarget.x,
             self.currentTarget.y,
             "PATH LENGTH:",
-            len(self.currentPath)
+            len(self.currentPath),
+            "DISTANCE FROM START:",
+            round(
+                self.planner.getDistanceFromStart(
+                    self.rover,
+                    self.map
+                ),
+                1
+            )
         )
 
     # print map status twice per second
@@ -193,7 +201,15 @@ class LavaTubeSim(ShowBase):
             "Unknown:",
             unknown,
             "Frontiers:",
-            len(frontiers)
+            len(frontiers),
+            "Distance from start:",
+            round(
+                self.planner.getDistanceFromStart(
+                    self.rover,
+                    self.map
+                ),
+                1
+            )
         )
 
     # update simulation

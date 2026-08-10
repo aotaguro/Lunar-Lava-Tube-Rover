@@ -22,7 +22,7 @@ class World:
         self.lavaTube = self.loader.loadModel("assets/lunarTube.glb")
         self.lavaTube.reparentTo(self.render)
         self.lavaTube.setPos(0, 0, 0)
-        self.lavaTube.setScale(2)
+        self.lavaTube.setScale(3)
         self.lavaTube.setHpr(0, 90, 0)
 
         # create cave collision
