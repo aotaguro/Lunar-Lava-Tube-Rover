@@ -6,10 +6,10 @@ class OccupancyGrid:
         self.height = height
         self.cellSize = cellSize
 
-        # center rover left and right
+        # keep rover centered left and right
         self.originX = width // 2
 
-        # start rover near bottom of map
+        # start rover near bottom so the map extends deeper into cave
         self.originY = 30
 
         # -1 = unknown
@@ -23,26 +23,16 @@ class OccupancyGrid:
     # convert world position into grid position
     def worldToGrid(self, x, y):
 
-        gridX = round(
-            x / self.cellSize
-        ) + self.originX
-
-        gridY = round(
-            y / self.cellSize
-        ) + self.originY
+        gridX = round(x / self.cellSize) + self.originX
+        gridY = round(y / self.cellSize) + self.originY
 
         return gridX, gridY
 
     # convert grid position into world position
     def gridToWorld(self, x, y):
 
-        worldX = (
-            x - self.originX
-        ) * self.cellSize
-
-        worldY = (
-            y - self.originY
-        ) * self.cellSize
+        worldX = (x - self.originX) * self.cellSize
+        worldY = (y - self.originY) * self.cellSize
 
         return worldX, worldY
 
@@ -68,33 +58,17 @@ class OccupancyGrid:
                 endGY
             )
 
-            if hit.hit:
-                freeCells = cells[:-1]
+            freeCells = cells[:-1] if hit.hit else cells
 
-            else:
-                freeCells = cells
-
-            # mark lidar path as free
             for x, y in freeCells:
 
-                if (
-                    self.isInside(x, y)
-                    and
-                    self.grid[y][x] != 1
-                ):
-
+                if self.isInside(x, y) and self.grid[y][x] != 1:
                     self.grid[y][x] = 0
 
-            # mark lidar hit as wall
-            if (
-                hit.hit
-                and
-                self.isInside(endGX, endGY)
-            ):
-
+            if hit.hit and self.isInside(endGX, endGY):
                 self.grid[endGY][endGX] = 1
 
-        # rover position is always free
+        # rover cell is always known free space
         if lidarHits:
 
             roverGX, roverGY = self.worldToGrid(
@@ -102,11 +76,7 @@ class OccupancyGrid:
                 lidarHits[0].startY
             )
 
-            if self.isInside(
-                roverGX,
-                roverGY
-            ):
-
+            if self.isInside(roverGX, roverGY):
                 self.grid[roverGY][roverGX] = 0
 
     # create cells between two grid positions
@@ -124,50 +94,34 @@ class OccupancyGrid:
 
         while True:
 
-            cells.append(
-                (x0, y0)
-            )
+            cells.append((x0, y0))
 
-            if (
-                x0 == x1
-                and
-                y0 == y1
-            ):
+            if x0 == x1 and y0 == y1:
                 break
 
             error2 = 2 * error
 
             if error2 > -dy:
-
                 error -= dy
                 x0 += sx
 
             if error2 < dx:
-
                 error += dx
                 y0 += sy
 
         return cells
 
-    # check if cell is inside map
     def isInside(self, x, y):
 
         return (
-            0 <= x < self.width
-            and
+            0 <= x < self.width and
             0 <= y < self.height
         )
 
-    # check if cell is free
     def isFree(self, x, y):
 
-        return (
-            self.isInside(x, y)
-            and
-            self.grid[y][x] == 0
-        )
+        return self.isInside(x, y) and self.grid[y][x] == 0
 
-    # check if cell is occupied
     def isOccupied(self, x, y):
 
         if not self.isInside(x, y):
@@ -175,35 +129,20 @@ class OccupancyGrid:
 
         return self.grid[y][x] == 1
 
-    # check if rover can safely enter cell
-    def isSafeCell(
-        self,
-        x,
-        y,
-        clearance=0
-    ):
+    # check if rover center can safely enter a cell
+    def isSafeCell(self, x, y, clearance=0):
 
         if not self.isFree(x, y):
             return False
 
-        for offsetY in range(
-            -clearance,
-            clearance + 1
-        ):
+        for offsetY in range(-clearance, clearance + 1):
 
-            for offsetX in range(
-                -clearance,
-                clearance + 1
-            ):
+            for offsetX in range(-clearance, clearance + 1):
 
                 checkX = x + offsetX
                 checkY = y + offsetY
 
-                if not self.isInside(
-                    checkX,
-                    checkY
-                ):
-
+                if not self.isInside(checkX, checkY):
                     return False
 
                 if self.grid[checkY][checkX] == 1:
