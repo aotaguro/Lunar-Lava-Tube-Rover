@@ -208,6 +208,9 @@ class LavaTubeSim(ShowBase):
         self.lidarLines.removeNode()
         self.lidarLines = self.render.attachNewNode("LiDAR")
 
+        if self.navigationMode != "lidar":
+            return
+
         lines = LineSegs()
         lines.setThickness(2)
         lines.setColor(0, 1, 0, 1)
